@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMTC Bus Stop Monitoring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1400px;
+            height: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .timestamp {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .busstop-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            flex: 1;
+            max-height: 60vh;
+        }
+
+        .busstop-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .busstop-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .busstop-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .count {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .count-label {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .total-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .total-label {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            opacity: 0.95;
+        }
+
+        .total-count {
+            font-size: 3.5rem;
+            font-weight: bold;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .updating {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚌 BMTC Bus Stop Monitoring</h1>
+            <p class="timestamp" id="timestamp">Last Updated: --</p>
+        </header>
+
+        <div class="busstop-grid" id="busstopGrid"></div>
+
+        <div class="total-card">
+            <div class="total-label">Total Passengers Waiting</div>
+            <div class="total-count" id="totalCount">--</div>
+            <div class="status">🟢 Live Updates</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api/busstop-counts';
+        const UPDATE_INTERVAL = 10000;
+
+        async function fetchData() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Error:', data.error);
+                    return;
+                }
+                
+                updateDisplay(data);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+            }
+        }
+
+        function updateDisplay(data) {
+            document.getElementById('timestamp').textContent = `Last Updated: ${data.timestamp}`;
+            
+            const grid = document.getElementById('busstopGrid');
+            grid.innerHTML = '';
+            
+            data.busstops.forEach(busstop => {
+                const card = document.createElement('div');
+                card.className = 'busstop-card updating';
+                card.innerHTML = `
+                    <div class="busstop-name">${busstop.name}</div>
+                    <div class="count">${busstop.count}</div>
+                    <div class="count-label">Passengers</div>
+                `;
+                grid.appendChild(card);
+                setTimeout(() => card.classList.remove('updating'), 500);
+            });
+            
+            const totalElement = document.getElementById('totalCount');
+            totalElement.classList.add('updating');
+            totalElement.textContent = data.total;
+            setTimeout(() => totalElement.classList.remove('updating'), 500);
+        }
+
+        fetchData();
+        setInterval(fetchData, UPDATE_INTERVAL);
+    </script>
+</body>
+</html>
